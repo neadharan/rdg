@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consumer Data Analysis</title>
+    <style>
+        body { 
+            font-family: 'Times New Roman', Times, serif; 
+            text-align: center; 
+            margin: 20px; 
+            background: url('bgg.jpg') no-repeat center center fixed; 
+            background-size: cover;
+        }
+        h1 { font-size: 29px; color: #3710e6; margin-bottom: 5px; }
+        h2 { font-size: 23px; color: #051be0; margin-bottom: 5px; }
+        h3 { font-size: 22px; color: #f51c1c; margin-bottom: 10px; }
+        
+        
+        img.logo { 
+            width: 120px; 
+            height: 120px; 
+            margin-bottom: 10px; 
+            border-radius: 50%; 
+           
+        }
+
+        input { 
+            margin: 5px; padding: 10px; font-size: 13px; 
+            border: 1px solid #341097; border-radius: 5px; width: 17%;
+        }
+        button { 
+            margin: 10px; padding: 10px; font-size: 16px; 
+            font-family: 'Times New Roman', Times, serif;
+            background-color: #007bff; 
+            color: white; border: none; border-radius: 5px; 
+            cursor: pointer; font-weight: bold;
+            transition: transform 0.2s, background-color 0.3s;
+        }
+        button:hover { 
+            background-color: #0feb1a; 
+            transform: scale(1.05);
+        }
+        
+        
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px; 
+            background: rgba(124, 150, 235, 0.9); 
+        }
+        th {
+            background-color: #597cf1;  
+            color: black;
+            padding: 10px;
+            border: 2px solid black; 
+            text-align: center;
+        }
+        td { 
+            border: 1px solid black; 
+            padding: 8px; 
+            text-align: left; 
+        }
+        tr:nth-child(odd) { background-color: #96f1b5; } 
+        tr:nth-child(even) { background-color: #279739; } 
+        tr:hover { background-color: #96f1b5; } 
+
+        #noDataMessage {
+            font-size: 18px; 
+            color: rgb(218, 20, 20); 
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    
+    <img src="rdg.png" alt="Company Logo" class="logo">
+    
+    <h1>Nepal Electricity Authority</h1>
+    <h2>Dharan DCS</h2>
+    <h3>ग्राहकको गत महिनाको Reading_Kwh रुजु गर्नुहोस!!!</h3>
+
+    <input type="text" id="searchInput" placeholder="SCNO, ID, NAME">
+    <button onclick="searchData()">🔎 Search</button>
+
+    <p id="noDataMessage">ग्राहकको विवरण राख्नुहोस जस्तै : SCNO, ID, NAME कुनै भर्नुहोस्</p>
+
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th>SCNO</th>
+                <th>ID</th>
+                <th>NAME</th>
+                <th>CATEGORY</th>
+                <th>LOAD</th>
+                <th>PREV_RDG_KWH</th>
+                <th>RDG_MONTH_YEAR</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwEg6h-TG9l1DL7jKEDDupQwarHsnJ7RzMvuX8HpBtRaahIxl9kz_wx0inQuv4Rb7CW/exec";
+
+        async function fetchData() {
+            try {
+                let response = await fetch(API_URL);
+                let data = await response.json();
+                localStorage.setItem("offlineData", JSON.stringify(data));
+                return data;
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                return JSON.parse(localStorage.getItem("offlineData")) || [];
+            }
+        }
+
+        function searchData() {
+            let query = document.getElementById("searchInput").value.trim().toLowerCase();
+            let noDataMessage = document.getElementById("noDataMessage");
+            let data = JSON.parse(localStorage.getItem("offlineData")) || [];
+
+            noDataMessage.style.display = "none";
+
+            if (query === "") {
+                noDataMessage.textContent = "कृपया SCNO, ID, NAME मध्ये कुनै एक भर्नुहोस्।";
+                noDataMessage.style.display = "block";
+                return;
+            }
+
+            if (data.length === 0) {
+                alert("No offline data found. Please load data first.");
+                return;
+            }
+
+            let filteredData = data.filter(row => 
+                row[0].toString().trim().toLowerCase() === query ||   
+                row[1].toString().trim().toLowerCase() === query ||   
+                row[3].toString().trim().toLowerCase() === query ||   
+                cleanName(row[2]).toLowerCase().includes(query)      
+            );
+
+            if (filteredData.length === 0) {
+                noDataMessage.textContent = "डेटा फेला परेन। कृपया SCNO,ID,NAME लेख्नुहोस्।";
+                noDataMessage.style.display = "block";
+                return;
+            }
+
+            let tbody = document.querySelector("#dataTable tbody");
+            tbody.innerHTML = "";
+
+            filteredData.forEach(row => {
+                let tr = document.createElement("tr");
+                row.forEach(cell => {
+                    let td = document.createElement("td");
+                    td.textContent = cell;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function cleanName(name) {
+            return name.replace(/^(mr\.|mrs\.|m\/s\.|mr|mrs|m\/s)/i, '').trim();
+        }
+
+        window.onload = fetchData;
+    </script>
+</body>
+</html>
